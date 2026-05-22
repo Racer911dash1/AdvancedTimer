@@ -1,5 +1,5 @@
 @tool
-@icon("res://AdvancedTimer.svg")
+@icon("res://addons/advanced_timer/advanced_timer.svg")
 class_name AdvancedTimer
 extends Timer
 ## An advanced timer class that extends the functionality of the [Timer] class.
