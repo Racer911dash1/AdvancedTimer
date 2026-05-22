@@ -1,3 +1,3 @@
 # AdvancedTimer
 
-An advanced timer class that extends the functionality of the [Timer] class.
+An advanced timer class that extends the functionality of the Timer class.
