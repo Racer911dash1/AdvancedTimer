@@ -17,3 +17,6 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 
+# Ignore .import files everywhere except inside addons/
+*.import
+!addons/**/*.import
