@@ -1,4 +1,4 @@
-![alt text](advanced_timer_512.png)
+![Icon](advanced_timer_512.png)
 
 # AdvancedTimer
 
