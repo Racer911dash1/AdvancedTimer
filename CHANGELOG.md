@@ -6,11 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.1.0] - 2026-06-22
 
-## Added
+### Added
 
 - A signal to inform how long the randomized timer lasts until timeout is emitted.
 
-## Changed
+### Changed
 
 - Variables to be more simple to type out
 - Timer seed to allow negative values
@@ -19,25 +19,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.0.0] - 2026-05-23
 
-## Added
+### Added
 
 - Grouped Properties, making it easier to tell what belongs together.
 
-## Changed
+### Changed
 
 - `start_random()` now calling `start()` with the `super` keyword.
 - Randomized timers now being rounded up to 3 decimal places.
 
-## Fixed
+### Fixed
 
 - `start_random()` by reusing the arguments given during its initial call
 
-## Deprecated
+### Deprecated
 
 - `start()` due to limitations, if you want to use this class as a normal timer,
 set **Min Wait Time** and **Max Wait Time** to the same values.
 
-## Removed
+### Removed
 
 - **Random Timer** due to deprecating `start()`.
 
