@@ -20,3 +20,6 @@ mono_crash.*.json
 # Ignore .import files everywhere except inside addons/
 *.import
 !addons/**/*.import
+
+# Personal ignores
+screenshots/
