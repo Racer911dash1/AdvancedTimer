@@ -30,6 +30,7 @@ enum Rounding {
 const _MIN_TIME: float = 0.001
 const _DEFAULT_MIN_WAIT_TIME: float = 1.0
 const _DEFAULT_MAX_WAIT_TIME: float = 1.0
+const _DEFAULT_STATIC_RANDOMIZATION: bool = false
 const _DEFAULT_ROUNDED: bool = false
 # For some reason it shows up in the Documentation if set to Rounding.ROUND
 # TODO: Change typing to Rounding when Documentation is fixed.
@@ -37,9 +38,10 @@ const _DEFAULT_ROUNDING_TYPE: int = 1
 const _DEFAULT_STEP_SIZE: float = 1.0
 const _DEFAULT_CLAMPED: bool = false
 const _DEFAULT_SEEDED: bool = false
-const _DEFAULT_TIMER_SEED: int = 0
+const _DEFAULT_SEED: Variant = null
 
 ## The minimum time required for the timer to end, in seconds.
+@export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var min_wait_time: float = _DEFAULT_MIN_WAIT_TIME:
 	set(value):
 		min_wait_time = value
@@ -47,16 +49,35 @@ var min_wait_time: float = _DEFAULT_MIN_WAIT_TIME:
 			max_wait_time = min_wait_time
 
 ## The maximum time required for the timer to end, in seconds.
+@export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var max_wait_time: float = _DEFAULT_MAX_WAIT_TIME:
 	set(value):
 		max_wait_time = value
 		if min_wait_time > max_wait_time:
 			min_wait_time = max_wait_time
 
-## If [code]true[/code], the randomized timeouts will be rounded to the nearest
+## If [code]true[/code], a [b]static[/b] [RandomNumberGenerator] is used for
+## randomized times that is shared between all instances of [AdvancedTimer].
+@export var static_randomization: bool = false:
+	set(value):
+		if value == static_randomization:
+			return
+		static_randomization = value
+
+## The seed that is set for [RandomNumberGenerator] to randomize the timer.[br]
+## If [code]null[/code], disables seeded time generation.
+var seed: Variant = _DEFAULT_SEED:
+	set(value):
+		if value == seed:
+			return
+		seed = value
+
+@export_group("Rounding")
+
+## If [code]true[/code], the randomized timeouts are rounded to the nearest
 ## [member step_size].
 ## [br][br]
-## However when rounding down to [code]0[/code], the value will always be
+## However when rounding down to [code]0[/code], the value is always
 ## clamped to [code]0.001[/code].
 ## [codeblock]
 ## # rounded set to false
@@ -69,6 +90,7 @@ var max_wait_time: float = _DEFAULT_MAX_WAIT_TIME:
 ## start_random(1.0, 2.0) # 1.0
 ## start_random(0.001, 1.0) # 0.001
 ## [/codeblock]
+@export
 var rounded: bool = _DEFAULT_ROUNDED:
 	set(value):
 		if value == rounded:
@@ -94,7 +116,7 @@ var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 		rounding_type = value
 		if not rounded and rounding_type != _DEFAULT_ROUNDING_TYPE:
 			push_warning("'rounding_type' is changed, but 'rounded' is false, \
-						meaning rounding will have no effect.")
+						meaning rounding has no effect.")
 
 ## If [code]true[/code], clamps the wait time between [member min_wait_time]
 ## and [member max_wait_time] and prevents the rounding to go out of bounds.
@@ -105,6 +127,7 @@ var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 ## # clamped set to true
 ## start_random(1.2, 1.8) # Either 1.2 or 1.8
 ## [/codeblock]
+@export
 var clamped: bool = _DEFAULT_CLAMPED:
 	set(value):
 		if value == clamped:
@@ -112,12 +135,12 @@ var clamped: bool = _DEFAULT_CLAMPED:
 		clamped = value
 		if not rounded and clamped:
 			push_warning("'clamped' is set to true, but 'rounded' is false, \
-						meaning clamping will have no effect.")
+						meaning clamping has no effect.")
 
 ## The step size of which the timer should round to.
 ## [br]
-## Setting [member step_size] to [code]0[/code] is the same as disabling
-## [member rounded]
+## Setting [member step_size] to [code]0[/code] is the same as setting
+## [member rounded] to [code]false[/code]
 ## [codeblock]
 ## step_size = 0.5
 ## start_random(1.0, 2.0) # 1.0
@@ -131,30 +154,84 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 		step_size = value
 		if not rounded and step_size != _DEFAULT_STEP_SIZE:
 			push_warning("'step_size' is changed, but 'rounded' is false, \
-						meaning step_size will have no effect.")
+						meaning step_size has no effect.")
 
-## If [code]true[/code], the randomizer will use [member timer_seed]
-## to set the seed for [RandomNumberGenerator].
-## [br]
-## Using it will result in random, but consistent wait times.
-var seeded: bool = _DEFAULT_SEEDED:
-	set(value):
-		if value == seeded:
-			return
-		seeded = value
-		notify_property_list_changed()
-
-## The seed that will be set for [RandomNumberGenerator] to randomize the timer.
-var timer_seed: int = _DEFAULT_TIMER_SEED:
-	set(value):
-		timer_seed = value
-		if not seeded and timer_seed != _DEFAULT_TIMER_SEED:
-			push_warning("'timer_seed' is changed, but 'seeded' is false, \
-						meaning timer_seed will have no effect.")
-
+static var _rng_static := RandomNumberGenerator.new()
 var _rng := RandomNumberGenerator.new()
-var _prev_min_wait_time: float = 1.0
-var _prev_max_wait_time: float = 1.0
+var _prev_min_wait_time: float
+var _prev_max_wait_time: float
+
+func _ready() -> void:
+	if not Engine.is_editor_hint():
+		timeout.connect(_on_timeout)
+
+	if seed != null:
+		if static_randomization:
+			_rng_static.seed = seed
+		else:
+			_rng.seed = seed
+
+	if autostart and not Engine.is_editor_hint():
+		start_random()
+
+#region Variable Properties
+
+func _validate_property(property: Dictionary) -> void:
+	const HIDE: Array[String] = ["wait_time"]
+	if property.name in HIDE:
+		property.usage = PROPERTY_USAGE_NONE
+
+	if property.name == "seed":
+		property.type = TYPE_INT
+		property.usage = PROPERTY_USAGE_CHECKABLE | PROPERTY_USAGE_DEFAULT
+
+	if property.name == "rounding_type":
+		property.type = TYPE_INT
+		property.hint = PROPERTY_HINT_ENUM
+		property.hint_string = "Floor,Round,Ceil"
+		property.usage = PROPERTY_USAGE_STORAGE
+		if rounded:
+			property.usage |= PROPERTY_USAGE_EDITOR
+
+	if property.name == "clamped":
+		property.type = TYPE_BOOL
+		property.usage = PROPERTY_USAGE_STORAGE
+		if rounded:
+			property.usage |= PROPERTY_USAGE_EDITOR
+
+	if property.name == "step_size":
+		property.type = TYPE_FLOAT
+		property.usage = PROPERTY_USAGE_STORAGE
+		if rounded:
+			property.usage |= PROPERTY_USAGE_EDITOR
+
+
+func _property_get_revert(property: StringName) -> Variant:
+	match property:
+		&"min_wait_time": return _DEFAULT_MIN_WAIT_TIME
+		&"max_wait_time": return _DEFAULT_MAX_WAIT_TIME
+		&"static_randomization": return _DEFAULT_STATIC_RANDOMIZATION
+		&"seed": return _DEFAULT_SEED
+		&"rounded": return _DEFAULT_ROUNDED
+		&"rounding_type": return _DEFAULT_ROUNDING_TYPE
+		&"clamped": return _DEFAULT_CLAMPED
+		&"step_size": return _DEFAULT_STEP_SIZE
+	return null
+
+
+func _property_can_revert(property: StringName) -> bool:
+	return property in [
+		&"min_wait_time",
+		&"max_wait_time",
+		&"static_randomization",
+		&"seed",
+		&"rounded",
+		&"rounding_type",
+		&"clamped",
+		&"step_size",
+	]
+
+#endregion
 
 ## @deprecated: Use [method start_random] instead.
 ## To simulate [method start_random] as a normal timer, set
@@ -162,215 +239,72 @@ var _prev_max_wait_time: float = 1.0
 func start(time_sec: float = -1) -> void:
 	start_random(time_sec, time_sec)
 
-## Starts the timer between [member _min_wait_time] and [member _max_wait_time].
-## If the arguments are greater than [code]0[/code], then those will be used
-## instead of [member min_wait_time] and [member max_wait_time].
-## [br]
-## Calling this function with [param _min_wait_time] and [param _max_wait_time]
-## being equal is the same as calling [method start]
-## [br][br]
-## [b]Note: [/b]If [param _max_wait_time] is less than [param _min_wait_time] or
-## any argument is below [code]0.001[/code], no timer will be started and an
-## error message will be pushed
-func start_random(_min_wait_time: float = -1.0, _max_wait_time: float = -1.0) -> void:
-	if _min_wait_time > _max_wait_time:
-		push_error("_min_wait_time (%.3f) must not be larger than _max_wait_time (%.3f), \
-					no timer has been started" % [_min_wait_time, _max_wait_time])
-		return
-
-	if _min_wait_time == -1.0:
-		_min_wait_time = min_wait_time
-
-	if _max_wait_time == -1.0:
-		_max_wait_time = max_wait_time
-
-	if _min_wait_time < _MIN_TIME:
-		push_error("_min_wait_time (%.3f) is smaller than %.3f, no timer has been started" \
-				% [_min_wait_time, _MIN_TIME])
-		return
-
-	if _max_wait_time < _MIN_TIME:
-		push_error("_max_wait_time (%.3f) is smaller than %.3f, no timer has been started" \
-				% [_max_wait_time, _MIN_TIME])
-		return
-
-	if _min_wait_time == _max_wait_time:
-		super.start(_min_wait_time)
-		return
-
-	var random_time: float = _rng.randf_range(_min_wait_time, _max_wait_time)
-	if rounded:
-		match rounding_type:
-			Rounding.FLOOR:
-				if clamped:
-					random_time = clampf(_snappedf_floor(random_time, step_size), _min_wait_time, _max_wait_time)
-				else:
-					random_time = maxf(_snappedf_floor(random_time, step_size), _MIN_TIME)
-			Rounding.ROUND:
-				if clamped:
-					random_time = clampf(snappedf(random_time, step_size), _min_wait_time, _max_wait_time)
-				else:
-					random_time = maxf(snappedf(random_time, step_size), _MIN_TIME)
-			Rounding.CEIL:
-				if clamped:
-					random_time = clampf(_snappedf_ceil(random_time, step_size), _min_wait_time, _max_wait_time)
-				else:
-					random_time = maxf(_snappedf_ceil(random_time, step_size), _MIN_TIME)
-
-	_prev_min_wait_time = _min_wait_time
-	_prev_max_wait_time = _max_wait_time
-	super.start(random_time)
-	timer_started.emit(random_time)
-
-
-func _ready() -> void:
-	if not Engine.is_editor_hint():
-		timeout.connect(_on_timeout)
-
-	if seeded:
-		_rng.seed = timer_seed
-
-	if autostart and not Engine.is_editor_hint():
-		start_random()
-
 
 func _on_timeout() -> void:
 	if not one_shot:
 		start_random(_prev_min_wait_time, _prev_max_wait_time)
 
-#region Variable Properties
 
-func _validate_property(property: Dictionary) -> void:
-	if property["name"] in ["wait_time"]:
-		property["usage"] = PROPERTY_USAGE_NONE
+## Starts the timer between [member min_time] and [member max_time].
+## If the arguments are greater than [code]0[/code], then those are used
+## instead of [member min_wait_time] and [member max_wait_time].[br]
+## Calling this function with [param min_time] and [param max_time]
+## being equal is the same as calling [method start]
+## [br][br]
+## [b][color=yellow]Warning:[/color][/b] If [param max_time] is less than [param min_time].
+## A timer of [param min_time] gets started.[br]
+## If any argument is below [code]0.001[/code], their value is clamped to
+## [code]0.001[/code].[br]
+## Additionally in either of those cases, a warning gets pushed.
+func start_random(min_time: float = -1.0, max_time: float = -1.0) -> void:
+	if min_time == -1.0:
+		min_time = min_wait_time
+	if max_time == -1.0:
+		max_time = max_wait_time
 
+	if min_time < _MIN_TIME:
+		push_warning("min_time (%.3f) is smaller than %.3f" \
+				% [min_time, _MIN_TIME])
+		min_time = _MIN_TIME
+	if max_time < _MIN_TIME:
+		push_warning("max_time (%.3f) is smaller than %.3f" \
+				% [max_time, _MIN_TIME])
+		max_time = _MIN_TIME
 
-func _get_property_list() -> Array[Dictionary]:
-	var property: Array[Dictionary] = []
+	if min_time > max_time:
+		push_warning("min_time (%.3f) should not be larger than \
+					max_time (%.3f)" % [min_time, max_time])
+		max_time = min_time
 
-	property.append({
-		"name": "min_wait_time",
-		"type": TYPE_FLOAT,
-		"hint": PROPERTY_HINT_RANGE,
-		"hint_string": "0.001,4096.0,0.001,exp,or_greater,suffix:s",
-	})
-	property.append({
-		"name": "max_wait_time",
-		"type": TYPE_FLOAT,
-		"hint": PROPERTY_HINT_RANGE,
-		"hint_string": "0.001,4096.0,0.001,exp,or_greater,suffix:s",
-	})
-	property.append({
-		"name": "Rounding",
-		"type": TYPE_NIL,
-		"hint_string": "rounded_",
-		"usage": PROPERTY_USAGE_GROUP,
-	})
-	property.append({
-		"name": "rounded",
-		"type": TYPE_BOOL
-	})
+	var random_time: float
+	if static_randomization:
+		random_time = _rng_static.randf_range(min_time, max_time)
+	else:
+		random_time = _rng.randf_range(min_time, max_time)
+
 	if rounded:
-		property.append({
-			"name": "rounded_type",
-			"type": TYPE_INT,
-			"hint": PROPERTY_HINT_ENUM,
-			"hint_string": "Floor,Round,Ceil",
-		})
-		property.append({
-			"name": "rounded_clamped",
-			"type": TYPE_BOOL,
-		})
-		property.append({
-			"name": "rounded_step_size",
-			"type": TYPE_FLOAT,
-		})
-	property.append({
-		"name": "Seeding",
-		"type": TYPE_NIL,
-		"hint_string": "seeded_",
-		"usage": PROPERTY_USAGE_GROUP,
-	})
-	property.append({
-	"name": "seeded",
-	"type": TYPE_BOOL,
-	})
-	if seeded:
-		property.append({
-			"name": "seeded_timer_seed",
-			"type": TYPE_INT,
-		})
-	return property
+		match rounding_type:
+			Rounding.FLOOR:
+				if clamped:
+					random_time = clampf(_snappedf_floor(random_time, step_size), min_time, max_time)
+				else:
+					random_time = maxf(_snappedf_floor(random_time, step_size), _MIN_TIME)
+			Rounding.ROUND:
+				if clamped:
+					random_time = clampf(snappedf(random_time, step_size), min_time, max_time)
+				else:
+					random_time = maxf(snappedf(random_time, step_size), _MIN_TIME)
+			Rounding.CEIL:
+				if clamped:
+					random_time = clampf(_snappedf_ceil(random_time, step_size), min_time, max_time)
+				else:
+					random_time = maxf(_snappedf_ceil(random_time, step_size), _MIN_TIME)
 
+	_prev_min_wait_time = min_time
+	_prev_max_wait_time = max_time
+	super.start(random_time)
+	timer_started.emit(random_time)
 
-func _property_get_revert(property: StringName) -> Variant:
-	match property:
-		"min_wait_time": return _DEFAULT_MIN_WAIT_TIME
-		"max_wait_time": return _DEFAULT_MAX_WAIT_TIME
-		"rounded": return _DEFAULT_ROUNDED
-		"rounded_type": return _DEFAULT_ROUNDING_TYPE
-		"rounded_clamped": return _DEFAULT_CLAMPED
-		"rounded_step_size": return _DEFAULT_STEP_SIZE
-		"seeded": return _DEFAULT_SEEDED
-		"seeded_timer_seed": return _DEFAULT_TIMER_SEED
-	return null
-
-
-func _property_can_revert(property: StringName) -> bool:
-	return property in [
-		"min_wait_time",
-		"max_wait_time",
-		"rounded",
-		"rounded_type",
-		"rounded_clamped",
-		"rounded_step_size",
-		"seeded",
-		"seeded_timer_seed",
-	]
-
-
-func _get(property: StringName) -> Variant:
-	match property:
-		"min_wait_time": return min_wait_time
-		"max_wait_time": return max_wait_time
-		"rounded": return rounded
-		"rounded_type": return rounding_type
-		"rounded_clamped": return clamped
-		"rounded_step_size": return step_size
-		"seeded": return seeded
-		"seeded_timer_seed": return timer_seed
-	return null
-
-
-func _set(property: StringName, value: Variant) -> bool:
-	match property:
-		"min_wait_time":
-			min_wait_time = value
-			return true
-		"max_wait_time":
-			max_wait_time = value
-			return true
-		"rounded":
-			rounded = value
-			return true
-		"rounded_type":
-			rounding_type = value
-			return true
-		"rounded_clamped":
-			clamped = value
-			return true
-		"rounded_step_size":
-			step_size = value
-			return true
-		"seeded":
-			seeded = value
-			return true
-		"seeded_timer_seed":
-			timer_seed = value
-			return true
-	return false
-
-#endregion
 
 func _snappedf_floor(value: float, step: float) -> float:
 	return floorf(value / step) * step

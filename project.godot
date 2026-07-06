@@ -12,6 +12,7 @@ config_version=5
 
 config/name="Advanced Timer"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="uid://b3vp3ps8wiute"
 
 [editor_plugins]
 
