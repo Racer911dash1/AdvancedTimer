@@ -38,7 +38,7 @@ const _DEFAULT_ROUNDING_TYPE: int = 1
 const _DEFAULT_STEP_SIZE: float = 1.0
 const _DEFAULT_CLAMPED: bool = false
 const _DEFAULT_SEEDED: bool = false
-const _DEFAULT_TIMER_SEED: Variant = null
+const _DEFAULT_SEED: Variant = null
 
 ## The minimum time required for the timer to end, in seconds.
 @export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
@@ -56,33 +56,28 @@ var max_wait_time: float = _DEFAULT_MAX_WAIT_TIME:
 		if min_wait_time > max_wait_time:
 			min_wait_time = max_wait_time
 
-## If [code]true[/code], a static [RandomNumberGenerator] will be used for
+## If [code]true[/code], a [b]static[/b] [RandomNumberGenerator] is used for
 ## randomized times that is shared between all instances of [AdvancedTimer].
-## [br][br]
-## [b]Note:[/b] Using this in combination with [member seeded] affects every
-## other class of this type to follow that specified seed.
 @export var static_randomization: bool = false:
 	set(value):
 		if value == static_randomization:
 			return
 		static_randomization = value
 
-## The seed that will be set for [RandomNumberGenerator] to randomize the timer.[br]
-## Set it to [code]null[/code] to disable seeded time generation
-@export_custom(PROPERTY_HINT_RANGE, "", PROPERTY_USAGE_CHECKABLE | PROPERTY_USAGE_DEFAULT)
-var timer_seed: Variant = _DEFAULT_TIMER_SEED:
+## The seed that is set for [RandomNumberGenerator] to randomize the timer.[br]
+## If [code]null[/code], disables seeded time generation.
+var seed: Variant = _DEFAULT_SEED:
 	set(value):
-		if value == timer_seed:
+		if value == seed:
 			return
-		timer_seed = value
-		print(timer_seed)
+		seed = value
 
 @export_group("Rounding")
 
-## If [code]true[/code], the randomized timeouts will be rounded to the nearest
+## If [code]true[/code], the randomized timeouts are rounded to the nearest
 ## [member step_size].
 ## [br][br]
-## However when rounding down to [code]0[/code], the value will always be
+## However when rounding down to [code]0[/code], the value is always
 ## clamped to [code]0.001[/code].
 ## [codeblock]
 ## # rounded set to false
@@ -95,6 +90,7 @@ var timer_seed: Variant = _DEFAULT_TIMER_SEED:
 ## start_random(1.0, 2.0) # 1.0
 ## start_random(0.001, 1.0) # 0.001
 ## [/codeblock]
+@export
 var rounded: bool = _DEFAULT_ROUNDED:
 	set(value):
 		if value == rounded:
@@ -120,7 +116,7 @@ var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 		rounding_type = value
 		if not rounded and rounding_type != _DEFAULT_ROUNDING_TYPE:
 			push_warning("'rounding_type' is changed, but 'rounded' is false, \
-						meaning rounding will have no effect.")
+						meaning rounding has no effect.")
 
 ## If [code]true[/code], clamps the wait time between [member min_wait_time]
 ## and [member max_wait_time] and prevents the rounding to go out of bounds.
@@ -131,6 +127,7 @@ var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 ## # clamped set to true
 ## start_random(1.2, 1.8) # Either 1.2 or 1.8
 ## [/codeblock]
+@export
 var clamped: bool = _DEFAULT_CLAMPED:
 	set(value):
 		if value == clamped:
@@ -138,12 +135,12 @@ var clamped: bool = _DEFAULT_CLAMPED:
 		clamped = value
 		if not rounded and clamped:
 			push_warning("'clamped' is set to true, but 'rounded' is false, \
-						meaning clamping will have no effect.")
+						meaning clamping has no effect.")
 
 ## The step size of which the timer should round to.
 ## [br]
-## Setting [member step_size] to [code]0[/code] is the same as disabling
-## [member rounded]
+## Setting [member step_size] to [code]0[/code] is the same as setting
+## [member rounded] to [code]false[/code]
 ## [codeblock]
 ## step_size = 0.5
 ## start_random(1.0, 2.0) # 1.0
@@ -157,7 +154,7 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 		step_size = value
 		if not rounded and step_size != _DEFAULT_STEP_SIZE:
 			push_warning("'step_size' is changed, but 'rounded' is false, \
-						meaning step_size will have no effect.")
+						meaning step_size has no effect.")
 
 static var _rng_static := RandomNumberGenerator.new()
 var _rng := RandomNumberGenerator.new()
@@ -168,11 +165,11 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		timeout.connect(_on_timeout)
 
-	if timer_seed != null:
+	if seed != null:
 		if static_randomization:
-			_rng_static.seed = timer_seed
+			_rng_static.seed = seed
 		else:
-			_rng.seed = timer_seed
+			_rng.seed = seed
 
 	if autostart and not Engine.is_editor_hint():
 		start_random()
@@ -184,13 +181,9 @@ func _validate_property(property: Dictionary) -> void:
 	if property.name in HIDE:
 		property.usage = PROPERTY_USAGE_NONE
 
-	#if property.name == "timer_seed":
-		#property.type = TYPE_INT
-		#property.usage = PROPERTY_USAGE_CHECKABLE | PROPERTY_USAGE_DEFAULT
-
-	if property.name == "rounded":
-		property.type = TYPE_BOOL
-		property.usage = PROPERTY_USAGE_DEFAULT
+	if property.name == "seed":
+		property.type = TYPE_INT
+		property.usage = PROPERTY_USAGE_CHECKABLE | PROPERTY_USAGE_DEFAULT
 
 	if property.name == "rounding_type":
 		property.type = TYPE_INT
@@ -218,7 +211,7 @@ func _property_get_revert(property: StringName) -> Variant:
 		&"min_wait_time": return _DEFAULT_MIN_WAIT_TIME
 		&"max_wait_time": return _DEFAULT_MAX_WAIT_TIME
 		&"static_randomization": return _DEFAULT_STATIC_RANDOMIZATION
-		&"timer_seed": return _DEFAULT_TIMER_SEED
+		&"seed": return _DEFAULT_SEED
 		&"rounded": return _DEFAULT_ROUNDED
 		&"rounding_type": return _DEFAULT_ROUNDING_TYPE
 		&"clamped": return _DEFAULT_CLAMPED
@@ -231,7 +224,7 @@ func _property_can_revert(property: StringName) -> bool:
 		&"min_wait_time",
 		&"max_wait_time",
 		&"static_randomization",
-		&"timer_seed",
+		&"seed",
 		&"rounded",
 		&"rounding_type",
 		&"clamped",
@@ -253,16 +246,16 @@ func _on_timeout() -> void:
 
 
 ## Starts the timer between [member min_time] and [member max_time].
-## If the arguments are greater than [code]0[/code], then those will be used
+## If the arguments are greater than [code]0[/code], then those are used
 ## instead of [member min_wait_time] and [member max_wait_time].[br]
 ## Calling this function with [param min_time] and [param max_time]
 ## being equal is the same as calling [method start]
 ## [br][br]
 ## [b][color=yellow]Warning:[/color][/b] If [param max_time] is less than [param min_time].
-## A timer of [param min_time] will start.[br]
-## If any argument is below [code]0.001[/code], their value will be clamped to
+## A timer of [param min_time] gets started.[br]
+## If any argument is below [code]0.001[/code], their value is clamped to
 ## [code]0.001[/code].[br]
-## Additionally in either of those cases, a warning will be pushed.
+## Additionally in either of those cases, a warning gets pushed.
 func start_random(min_time: float = -1.0, max_time: float = -1.0) -> void:
 	if min_time == -1.0:
 		min_time = min_wait_time
