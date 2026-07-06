@@ -5,17 +5,32 @@
 
 [node name="Node" type="Node" unique_id=1069668328]
 script = ExtResource("1_j2q8x")
-number = 4
 
 [node name="AdvancedTimer" type="Timer" parent="." unique_id=1434683411]
 autostart = true
 script = ExtResource("1_sy5k4")
-min_wait_time = 1.0
-max_wait_time = 1.0
-static_randomization = false
 rounded = false
 rounding_type = 1
 clamped = false
 step_size = 1.0
-timer_seed = null
+metadata/_custom_type_script = "uid://bmuelgi00qjcx"
+
+[node name="AdvancedTimer2" type="Timer" parent="." unique_id=1782751730]
+autostart = true
+script = ExtResource("1_sy5k4")
+static_randomization = true
+rounded = false
+rounding_type = 1
+clamped = false
+step_size = 1.0
+metadata/_custom_type_script = "uid://bmuelgi00qjcx"
+
+[node name="AdvancedTimer3" type="Timer" parent="." unique_id=656454109]
+autostart = true
+script = ExtResource("1_sy5k4")
+static_randomization = true
+rounded = false
+rounding_type = 1
+clamped = false
+step_size = 1.0
 metadata/_custom_type_script = "uid://bmuelgi00qjcx"
