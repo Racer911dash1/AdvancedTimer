@@ -4,6 +4,23 @@ All changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-07-05
+
+### Added
+
+- Static Randomization
+  - Uses a RandomNumberGenerator variable that's shared across all instances of the same class.
+  - Recommended for web builds if a lot of timers get generated in short succession.
+
+### Changed
+
+- `start_random()` now always starts a timer even with wrong arguments.
+  - Renamed the parameters from `_min/max_wait_time` to `min/max_time`.
+  - If `max_time` is less than `min_time`, a timer of `min_time` will start.
+  - If any argument is below `0.001`, their value will be clamped to `0.001`.
+    - Pushed errors are not pushed as warnings instead.
+- Some documentation.
+
 ## [2.1.0] - 2026-06-22
 
 ## Added

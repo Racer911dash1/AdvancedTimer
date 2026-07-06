@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ddluck0wil48"]
+
+[ext_resource type="Script" uid="uid://cplrj0huo23qk" path="res://node.gd" id="1_j2q8x"]
+[ext_resource type="Script" uid="uid://bmuelgi00qjcx" path="res://addons/advanced_timer/advanced_timer.gd" id="1_sy5k4"]
+
+[node name="Node" type="Node" unique_id=1069668328]
+script = ExtResource("1_j2q8x")
+number = 4
+
+[node name="AdvancedTimer" type="Timer" parent="." unique_id=1434683411]
+autostart = true
+script = ExtResource("1_sy5k4")
+min_wait_time = 1.0
+max_wait_time = 1.0
+static_randomization = false
+rounded = false
+rounding_type = 1
+clamped = false
+step_size = 1.0
+timer_seed = null
+metadata/_custom_type_script = "uid://bmuelgi00qjcx"
