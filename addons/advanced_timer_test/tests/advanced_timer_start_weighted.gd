@@ -5,7 +5,8 @@ extends GdUnitTestSuite
 @warning_ignore('return_value_discarded')
 
 # TestSuite generated from
-const __source: String = 'res://addons/advanced_timer/advanced_timer.gd'
+const _SOURCE: String = 'res://addons/advanced_timer/advanced_timer.gd'
+
 
 func test_single_entry() -> void:
 	var timer := AdvancedTimer.new()

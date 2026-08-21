@@ -1,7 +1,3 @@
-@tool
-@icon("res://addons/advanced_timer/advanced_timer.svg")
-class_name AdvancedTimer
-extends Timer
 ## An advanced countdown timer that extends the functionality of the [Timer] class.
 ##
 ## The [AdvancedTimer] node expands the [Timer] class by providing a wider
@@ -12,6 +8,10 @@ extends Timer
 ## should be rounded.[br]
 ## Additionally a seed can be set to get consistent results with the
 ## randomized times.
+@tool
+@icon("res://addons/advanced_timer/advanced_timer.svg")
+class_name AdvancedTimer
+extends Timer
 
 ## Emitted when the timer starts.[br]
 ## [param time] is the time in seconds until [signal Timer.timeout] is emitted.
@@ -101,8 +101,10 @@ var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 			return
 		rounding_type = value
 		if not rounded and rounding_type != _DEFAULT_ROUNDING_TYPE:
-			push_warning("'rounding_type' is changed, but 'rounded' is false, \
-						meaning rounding has no effect.")
+			push_warning(
+				"'rounding_type' is changed, but 'rounded' is false, \
+						meaning rounding has no effect."
+			)
 
 ## If [code]true[/code], clamps the wait time between [member min_wait_time]
 ## and [member max_wait_time] and prevents the rounding to go out of bounds.
@@ -120,8 +122,10 @@ var clamped: bool = _DEFAULT_CLAMPED:
 			return
 		clamped = value
 		if not rounded and clamped:
-			push_warning("'clamped' is set to true, but 'rounded' is false, \
-						meaning clamping has no effect.")
+			push_warning(
+				"'clamped' is set to true, but 'rounded' is false, \
+						meaning clamping has no effect."
+			)
 
 ## The step size of which the timer should round to.
 ## [br]
@@ -139,8 +143,10 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 			return
 		step_size = value
 		if not rounded and step_size != _DEFAULT_STEP_SIZE:
-			push_warning("'step_size' is changed, but 'rounded' is false, \
-						meaning step_size has no effect.")
+			push_warning(
+				"'step_size' is changed, but 'rounded' is false, \
+						meaning step_size has no effect."
+			)
 
 #endregion Random Timer Variables
 
@@ -155,15 +161,14 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 	set(value):
 		weighted_times = value
 		notify_property_list_changed()
-@export_tool_button("Sort Pair") var sort = (
-	func():
-		weighted_times.pairs.sort()
-		notify_property_list_changed()
-		)
+@export_tool_button("Sort Pair") var sort = (func():
+	weighted_times.pairs.sort()
+	notify_property_list_changed()
+)
 
 var pairs: Dictionary[float, float]:
 	get:
-		return weighted_times.pairs if weighted_times else {}
+		return weighted_times.pairs if weighted_times else { }
 #endregion Weighted Timer Variables
 
 @export_category("Timer Modifiers")
@@ -192,6 +197,7 @@ var _prev_min_wait_time: float
 var _prev_max_wait_time: float
 var _prev_times: PackedFloat32Array
 var _prev_weights: PackedFloat32Array
+
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
@@ -241,14 +247,22 @@ func _validate_property(property: Dictionary) -> void:
 
 func _property_get_revert(property: StringName) -> Variant:
 	match property:
-		&"min_wait_time": return _DEFAULT_MIN_WAIT_TIME
-		&"max_wait_time": return _DEFAULT_MAX_WAIT_TIME
-		&"static_randomization": return _DEFAULT_STATIC_RANDOMIZATION
-		&"seed": return _DEFAULT_SEED
-		&"rounded": return _DEFAULT_ROUNDED
-		&"rounding_type": return _DEFAULT_ROUNDING_TYPE
-		&"clamped": return _DEFAULT_CLAMPED
-		&"step_size": return _DEFAULT_STEP_SIZE
+		&"min_wait_time":
+			return _DEFAULT_MIN_WAIT_TIME
+		&"max_wait_time":
+			return _DEFAULT_MAX_WAIT_TIME
+		&"static_randomization":
+			return _DEFAULT_STATIC_RANDOMIZATION
+		&"seed":
+			return _DEFAULT_SEED
+		&"rounded":
+			return _DEFAULT_ROUNDED
+		&"rounding_type":
+			return _DEFAULT_ROUNDING_TYPE
+		&"clamped":
+			return _DEFAULT_CLAMPED
+		&"step_size":
+			return _DEFAULT_STEP_SIZE
 	return null
 
 
@@ -294,17 +308,24 @@ func start_random(min_time: float = -1.0, max_time: float = -1.0) -> float:
 		max_time = max_wait_time
 
 	if min_time < _MIN_TIME:
-		push_warning("min_time (%.3f) is smaller than %.3f" \
-				% [min_time, _MIN_TIME])
+		push_warning(
+			"min_time (%.3f) is smaller than %.3f" \
+					% [min_time, _MIN_TIME]
+		)
 		min_time = _MIN_TIME
 	if max_time < _MIN_TIME:
-		push_warning("max_time (%.3f) is smaller than %.3f" \
-				% [max_time, _MIN_TIME])
+		push_warning(
+			"max_time (%.3f) is smaller than %.3f" \
+					% [max_time, _MIN_TIME]
+		)
 		max_time = _MIN_TIME
 
 	if min_time > max_time:
-		push_warning("min_time (%.3f) should not be larger than \
-					max_time (%.3f)" % [min_time, max_time])
+		push_warning(
+			"min_time (%.3f) should not be larger than \
+					max_time (%.3f)"
+			% [min_time, max_time]
+		)
 		max_time = min_time
 
 	var random_time: float = _get_random_time(min_time, max_time)
@@ -325,8 +346,11 @@ func start_weighted(times: PackedFloat32Array = [], weights: PackedFloat32Array 
 	if (weighted_times == null or pairs.is_empty()) and (times.is_empty() or weights.is_empty()):
 		const FALLBACK_TIME: float = 1.0
 		if weighted_times == null or pairs.is_empty():
-			push_warning("Called start_weighted while weighted_times property is null or empty. \
-				Falling back to a %d second timer" % FALLBACK_TIME)
+			push_warning(
+				"Called start_weighted while weighted_times property is null or empty. \
+			Falling back to a %d second timer"
+				% FALLBACK_TIME
+			)
 		super.start(FALLBACK_TIME)
 		timer_started.emit(FALLBACK_TIME)
 		return FALLBACK_TIME
@@ -354,37 +378,32 @@ func start_weighted(times: PackedFloat32Array = [], weights: PackedFloat32Array 
 func _get_random_time(min_time: float, max_time: float) -> float:
 	if static_randomization:
 		return _rng_static.randf_range(min_time, max_time)
-	else:
-		return _rng.randf_range(min_time, max_time)
+	return _rng.randf_range(min_time, max_time)
 
 
 func _get_weighted_time(times: PackedFloat32Array, weights: PackedFloat32Array) -> float:
 	if static_randomization:
 		return times[_rng_static.rand_weighted(weights)]
-	else:
-		return times[_rng.rand_weighted(weights)]
+	return times[_rng.rand_weighted(weights)]
 
 
 func _round_time(time: float, min_time: float, max_time: float) -> float:
 	match rounding_type:
-			Rounding.FLOOR:
-				if clamped:
-					return clampf(_snappedf_floor(time, step_size), min_time, max_time)
-				else:
-					return maxf(_snappedf_floor(time, step_size), _MIN_TIME)
-			Rounding.ROUND:
-				if clamped:
-					return clampf(snappedf(time, step_size), min_time, max_time)
-				else:
-					return maxf(snappedf(time, step_size), _MIN_TIME)
-			Rounding.CEIL:
-				if clamped:
-					return clampf(_snappedf_ceil(time, step_size), min_time, max_time)
-				else:
-					return maxf(_snappedf_ceil(time, step_size), _MIN_TIME)
-			_:
-				push_error("Missing rounding type")
-				return time
+		Rounding.FLOOR:
+			if clamped:
+				return clampf(_snappedf_floor(time, step_size), min_time, max_time)
+			return maxf(_snappedf_floor(time, step_size), _MIN_TIME)
+		Rounding.ROUND:
+			if clamped:
+				return clampf(snappedf(time, step_size), min_time, max_time)
+			return maxf(snappedf(time, step_size), _MIN_TIME)
+		Rounding.CEIL:
+			if clamped:
+				return clampf(_snappedf_ceil(time, step_size), min_time, max_time)
+			return maxf(_snappedf_ceil(time, step_size), _MIN_TIME)
+		_:
+			push_error("Missing rounding type")
+			return time
 
 
 func _set_seed(seed: Variant) -> void:
