@@ -13,17 +13,16 @@ extends Timer
 ## Additionally a seed can be set to get consistent results with the
 ## randomized times.
 
-## Emitted when the timer starts.
-## [br]
+## Emitted when the timer starts.[br]
 ## [param time] is the time in seconds until [signal Timer.timeout] is emitted.
 signal timer_started(time: float)
 
 enum Rounding {
-	## Always round down to the nearest [member step_size]
+	## Round down to the nearest [member step_size]
 	FLOOR,
 	## Round to the nearest [member step_size]
 	ROUND,
-	## Always round up to the nearest [member step_size]
+	## Round up to the nearest [member step_size]
 	CEIL,
 }
 
@@ -40,10 +39,14 @@ const _DEFAULT_CLAMPED: bool = false
 const _DEFAULT_SEEDED: bool = false
 const _DEFAULT_SEED: Variant = null
 
+@export_category("Random Timer")
+#region Random Timer Variables
+
 ## The minimum time required for the timer to end, in seconds.
 @export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var min_wait_time: float = _DEFAULT_MIN_WAIT_TIME:
 	set(value):
+		value = maxf(value, _MIN_TIME)
 		min_wait_time = value
 		if max_wait_time < min_wait_time:
 			max_wait_time = min_wait_time
@@ -52,27 +55,10 @@ var min_wait_time: float = _DEFAULT_MIN_WAIT_TIME:
 @export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var max_wait_time: float = _DEFAULT_MAX_WAIT_TIME:
 	set(value):
+		value = maxf(value, _MIN_TIME)
 		max_wait_time = value
 		if min_wait_time > max_wait_time:
 			min_wait_time = max_wait_time
-
-## If [code]true[/code], a [b]static[/b] [RandomNumberGenerator] is used for
-## randomized times that is shared between all instances of [AdvancedTimer].
-@export var static_randomization: bool = false:
-	set(value):
-		if value == static_randomization:
-			return
-		static_randomization = value
-
-## The seed that is set for [RandomNumberGenerator] to randomize the timer.[br]
-## If [code]null[/code], disables seeded time generation.
-var seed: Variant = _DEFAULT_SEED:
-	set(value):
-		if value == seed:
-			return
-		seed = value
-
-@export_group("Rounding")
 
 ## If [code]true[/code], the randomized timeouts are rounded to the nearest
 ## [member step_size].
@@ -156,20 +142,62 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 			push_warning("'step_size' is changed, but 'rounded' is false, \
 						meaning step_size has no effect.")
 
+#endregion Random Timer Variables
+
+@export_category("Weighted Timer")
+#region Weighted Timer Variables
+
+## A Resource that contains a Dictionary of floats as pairs.[br]
+## The key signifies the time in seconds, while the value signifies the weight
+## of the time. The weight of the timer compared to others influences its
+## likelyhood to be chosen.
+@export var weighted_times: WeightedTime:
+	set(value):
+		weighted_times = value
+		notify_property_list_changed()
+@export_tool_button("Sort Pair") var sort = (
+	func():
+		weighted_times.pairs.sort()
+		notify_property_list_changed()
+		)
+
+var pairs: Dictionary[float, float]:
+	get:
+		return weighted_times.pairs if weighted_times else {}
+#endregion Weighted Timer Variables
+
+@export_category("Timer Modifiers")
+## If [code]true[/code], a [b]static[/b] [RandomNumberGenerator] is used for
+## randomized times that is shared between all instances of [AdvancedTimer].
+@export var static_randomization: bool = false:
+	set(value):
+		if value == static_randomization:
+			return
+		static_randomization = value
+		_set_seed(seed)
+
+## The seed that is set for [RandomNumberGenerator] to randomize the timer.[br]
+## If [code]null[/code], disables seeded time generation.
+var seed: Variant = _DEFAULT_SEED:
+	set(value):
+		if value == seed:
+			return
+		seed = value
+		_set_seed(seed)
+
 static var _rng_static := RandomNumberGenerator.new()
 var _rng := RandomNumberGenerator.new()
+var _prev_timer: Callable
 var _prev_min_wait_time: float
 var _prev_max_wait_time: float
+var _prev_times: PackedFloat32Array
+var _prev_weights: PackedFloat32Array
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
 		timeout.connect(_on_timeout)
 
-	if seed != null:
-		if static_randomization:
-			_rng_static.seed = seed
-		else:
-			_rng.seed = seed
+	_set_seed(seed)
 
 	if autostart and not Engine.is_editor_hint():
 		start_random()
@@ -203,6 +231,11 @@ func _validate_property(property: Dictionary) -> void:
 		property.type = TYPE_FLOAT
 		property.usage = PROPERTY_USAGE_STORAGE
 		if rounded:
+			property.usage |= PROPERTY_USAGE_EDITOR
+
+	if property.name == "sort":
+		property.usage = PROPERTY_USAGE_STORAGE
+		if weighted_times:
 			property.usage |= PROPERTY_USAGE_EDITOR
 
 
@@ -240,12 +273,8 @@ func start(time_sec: float = -1) -> void:
 	start_random(time_sec, time_sec)
 
 
-func _on_timeout() -> void:
-	if not one_shot:
-		start_random(_prev_min_wait_time, _prev_max_wait_time)
-
-
-## Starts the timer between [member min_time] and [member max_time].
+## Starts the timer between [member min_time] and [member max_time].[br]
+## Returns the length of the timer.[br]
 ## If the arguments are greater than [code]0[/code], then those are used
 ## instead of [member min_wait_time] and [member max_wait_time].[br]
 ## Calling this function with [param min_time] and [param max_time]
@@ -256,7 +285,9 @@ func _on_timeout() -> void:
 ## If any argument is below [code]0.001[/code], their value is clamped to
 ## [code]0.001[/code].[br]
 ## Additionally in either of those cases, a warning gets pushed.
-func start_random(min_time: float = -1.0, max_time: float = -1.0) -> void:
+func start_random(min_time: float = -1.0, max_time: float = -1.0) -> float:
+	_prev_timer = start_random
+
 	if min_time == -1.0:
 		min_time = min_wait_time
 	if max_time == -1.0:
@@ -276,34 +307,100 @@ func start_random(min_time: float = -1.0, max_time: float = -1.0) -> void:
 					max_time (%.3f)" % [min_time, max_time])
 		max_time = min_time
 
-	var random_time: float
-	if static_randomization:
-		random_time = _rng_static.randf_range(min_time, max_time)
-	else:
-		random_time = _rng.randf_range(min_time, max_time)
+	var random_time: float = _get_random_time(min_time, max_time)
 
 	if rounded:
-		match rounding_type:
-			Rounding.FLOOR:
-				if clamped:
-					random_time = clampf(_snappedf_floor(random_time, step_size), min_time, max_time)
-				else:
-					random_time = maxf(_snappedf_floor(random_time, step_size), _MIN_TIME)
-			Rounding.ROUND:
-				if clamped:
-					random_time = clampf(snappedf(random_time, step_size), min_time, max_time)
-				else:
-					random_time = maxf(snappedf(random_time, step_size), _MIN_TIME)
-			Rounding.CEIL:
-				if clamped:
-					random_time = clampf(_snappedf_ceil(random_time, step_size), min_time, max_time)
-				else:
-					random_time = maxf(_snappedf_ceil(random_time, step_size), _MIN_TIME)
+		random_time = _round_time(random_time, min_time, max_time)
 
 	_prev_min_wait_time = min_time
 	_prev_max_wait_time = max_time
 	super.start(random_time)
 	timer_started.emit(random_time)
+	return random_time
+
+
+func start_weighted(times: PackedFloat32Array = [], weights: PackedFloat32Array = []) -> float:
+	_prev_timer = start_weighted
+
+	if (weighted_times == null or pairs.is_empty()) and (times.is_empty() or weights.is_empty()):
+		const FALLBACK_TIME: float = 1.0
+		if weighted_times == null or pairs.is_empty():
+			push_warning("Called start_weighted while weighted_times property is null or empty. \
+				Falling back to a %d second timer" % FALLBACK_TIME)
+		super.start(FALLBACK_TIME)
+		timer_started.emit(FALLBACK_TIME)
+		return FALLBACK_TIME
+
+	if times.is_empty():
+		times = weighted_times.get_times()
+	if weights.is_empty():
+		weights = weighted_times.get_weights()
+
+	if times.size() > weights.size():
+		push_warning("times is larger than weights, resizing it to match weights")
+		times.resize(weights.size())
+	if times.size() < weights.size():
+		push_warning("weights is larger than times, resizing it to match times")
+		weights.resize(times.size())
+
+	_prev_times = times
+	_prev_weights = weights
+	var weighted_time = _get_weighted_time(times, weights)
+	super.start(weighted_time)
+	timer_started.emit(weighted_time)
+	return weighted_time
+
+
+func _get_random_time(min_time: float, max_time: float) -> float:
+	if static_randomization:
+		return _rng_static.randf_range(min_time, max_time)
+	else:
+		return _rng.randf_range(min_time, max_time)
+
+
+func _get_weighted_time(times: PackedFloat32Array, weights: PackedFloat32Array) -> float:
+	if static_randomization:
+		return times[_rng_static.rand_weighted(weights)]
+	else:
+		return times[_rng.rand_weighted(weights)]
+
+
+func _round_time(time: float, min_time: float, max_time: float) -> float:
+	match rounding_type:
+			Rounding.FLOOR:
+				if clamped:
+					return clampf(_snappedf_floor(time, step_size), min_time, max_time)
+				else:
+					return maxf(_snappedf_floor(time, step_size), _MIN_TIME)
+			Rounding.ROUND:
+				if clamped:
+					return clampf(snappedf(time, step_size), min_time, max_time)
+				else:
+					return maxf(snappedf(time, step_size), _MIN_TIME)
+			Rounding.CEIL:
+				if clamped:
+					return clampf(_snappedf_ceil(time, step_size), min_time, max_time)
+				else:
+					return maxf(_snappedf_ceil(time, step_size), _MIN_TIME)
+			_:
+				push_error("Missing rounding type")
+				return time
+
+
+func _set_seed(seed: Variant) -> void:
+	if seed != null:
+		if static_randomization:
+			_rng_static.seed = seed
+		else:
+			_rng.seed = seed
+
+
+func _on_timeout() -> void:
+	if not one_shot:
+		if _prev_timer == start_random:
+			start_random(_prev_min_wait_time, _prev_max_wait_time)
+		if _prev_timer == start_weighted:
+			start_weighted(_prev_times, _prev_weights)
 
 
 func _snappedf_floor(value: float, step: float) -> float:

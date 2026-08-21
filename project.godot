@@ -16,7 +16,16 @@ config/icon="uid://b3vp3ps8wiute"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/advanced_timer/plugin.cfg")
+enabled=PackedStringArray("res://addons/advanced_timer/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
+
+[gdunit4]
+
+settings/test/test_lookup_folder="tests"
+ui/toolbar/run_overall=true
+hooks/session_hooks=Dictionary[String, bool]({
+"res://addons/gdUnit4/src/core/hooks/GdUnitHtmlReporterTestSessionHook.gd": false,
+"res://addons/gdUnit4/src/core/hooks/GdUnitXMLReporterTestSessionHook.gd": false
+})
 
 [physics]
 
