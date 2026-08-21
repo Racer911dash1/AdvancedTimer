@@ -16,7 +16,25 @@ config/icon="uid://b3vp3ps8wiute"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/advanced_timer/plugin.cfg")
+enabled=PackedStringArray("res://addons/GDQuest_GDScript_formatter/plugin.cfg", "res://addons/advanced_timer/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
+
+[gdunit4]
+
+settings/test/test_lookup_folder="tests"
+ui/toolbar/run_overall=true
+templates/testsuite/GDScript="# GdUnit generated TestSuite
+class_name ${suite_class_name}
+extends GdUnitTestSuite
+@warning_ignore('unused_parameter')
+@warning_ignore('return_value_discarded')
+
+# TestSuite generated from
+const _SOURCE: String = '${source_resource_path}'
+"
+hooks/session_hooks=Dictionary[String, bool]({
+"res://addons/gdUnit4/src/core/hooks/GdUnitHtmlReporterTestSessionHook.gd": false,
+"res://addons/gdUnit4/src/core/hooks/GdUnitXMLReporterTestSessionHook.gd": false
+})
 
 [physics]
 

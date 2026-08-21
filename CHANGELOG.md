@@ -4,6 +4,25 @@ All changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.3.0] - 2026-08-06
+
+### Added
+
+- `start_weighted()` method for weighted randomization.
+	- Set the `weighted_times` property to use the method without arguments.
+- `WeightedTimeTable` Resource for reusable Dictionaries.
+
+### Changed
+
+- Some documentation.
+
+### Fixed
+
+- The timer seed not changing after entering the scene tree.
+- The `min/max_wait_time` setter not enforcing the minimum time if set via code.
+
+
 ## [2.2.0] - 2026-07-06
 
 ### Added
@@ -65,7 +84,7 @@ set **Min Wait Time** and **Max Wait Time** to the same values.
 
 ## [1.1.0] - 2026-05-23
 
-### Added
+#### Added
 
 - Function arguments for `start_random()`.
   - If none are provided, the timer will start a timer between **Min Wait Time** and **Max Wait Time**.
