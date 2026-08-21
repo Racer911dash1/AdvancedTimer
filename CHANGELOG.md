@@ -4,6 +4,25 @@ All changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.3.0] - 2026-08-06
+
+### Added
+
+- `start_weighted()` method for weighted randomization.
+	- Set the `weighted_times` property to use the method without arguments.
+- `WeightedTimeTable` Resource for reusable Dictionaries.
+
+### Changed
+
+- Some documentation.
+
+### Fixed
+
+- The timer seed not changing after entering the scene tree.
+- The `min/max_wait_time` setter not enforcing the minimum time if set via code.
+
+
 ## [2.2.0] - 2026-07-06
 
 ### Added
@@ -28,11 +47,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.1.0] - 2026-06-22
 
-## Added
+### Added
 
 - A signal to inform how long the randomized timer lasts until timeout is emitted.
 
-## Changed
+### Changed
 
 - Variables to be more simple to type out
 - Timer seed to allow negative values
@@ -41,31 +60,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.0.0] - 2026-05-23
 
-## Added
+### Added
 
 - Grouped Properties, making it easier to tell what belongs together.
 
-## Changed
+### Changed
 
 - `start_random()` now calling `start()` with the `super` keyword.
 - Randomized timers now being rounded up to 3 decimal places.
 
-## Fixed
+### Fixed
 
 - `start_random()` by reusing the arguments given during its initial call
 
-## Deprecated
+### Deprecated
 
 - `start()` due to limitations, if you want to use this class as a normal timer,
 set **Min Wait Time** and **Max Wait Time** to the same values.
 
-## Removed
+### Removed
 
 - **Random Timer** due to deprecating `start()`.
 
 ## [1.1.0] - 2026-05-23
 
-### Added
+#### Added
 
 - Function arguments for `start_random()`.
   - If none are provided, the timer will start a timer between **Min Wait Time** and **Max Wait Time**.
