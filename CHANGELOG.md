@@ -5,6 +5,12 @@ All changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.3.1] - 2026-08-24
+
+### Fixed
+
+- An error where a changed variable name didn't reflect the change in the `_validate_property()` function.
+
 ## [2.3.0] - 2026-08-06
 
 ### Added

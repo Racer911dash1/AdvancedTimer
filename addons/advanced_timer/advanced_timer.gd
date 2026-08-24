@@ -269,7 +269,7 @@ func _validate_property(property: Dictionary) -> void:
 		if rounded:
 			property.usage |= PROPERTY_USAGE_EDITOR
 
-	if property.name == "sort":
+	if property.name == "sort_weighted_times":
 		property.type = TYPE_CALLABLE
 		property.usage = PROPERTY_USAGE_STORAGE
 		if weighted_times:
