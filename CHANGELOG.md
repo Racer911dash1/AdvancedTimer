@@ -26,6 +26,7 @@ This category is for changes that are not relevant for the average user.
 - Added weighted_times default value - `null`
 - Doc comment placed according to the gdscript style guide.
 - Shuffled code, mainly to follow the gdscript style guide.
+- Removed formatter addon.
 
 ---
 
