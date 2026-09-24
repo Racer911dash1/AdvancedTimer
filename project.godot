@@ -16,7 +16,7 @@ config/icon="uid://b3vp3ps8wiute"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GDQuest_GDScript_formatter/plugin.cfg", "res://addons/advanced_timer/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
+enabled=PackedStringArray("res://addons/advanced_timer/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
 
 [gdunit4]
 
