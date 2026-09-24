@@ -4,6 +4,30 @@ All changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+The following unreleased changes have not yet been submitted to the Godot asset store.
+
+## Unreleased
+
+### Changed
+
+- Renamed `sort_weighted_times` to `sort_weighted_times_action`
+
+### Fixed
+
+- Setting `seed` to `null` after previously setting a seed did not "disable" the seeded time generation. It now randomizes the seed when set to `null`, effectively disabling it.
+  - Setting `static_randomization` also sets the rng seed.
+
+### Other
+
+This category is for changes that are not relevant for the average user.
+
+- Setters and Getters are now functions instead of codeblocks.
+  - Additionally changed the logic of some setters.
+- Added weighted_times default value - `null`
+- Doc comment placed according to the gdscript style guide.
+- Shuffled code, mainly to follow the gdscript style guide.
+
+---
 
 ## [2.3.1] - 2026-08-24
 
