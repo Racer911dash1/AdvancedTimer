@@ -4,19 +4,10 @@ class_name AdvancedTimer
 extends Timer
 ## An advanced countdown timer that extends the functionality of the [Timer] class.
 ##
-## The [AdvancedTimer] node expands the [Timer] class by providing a wider
-## set of functionalities.[br]
-## While able to be used like any other timer, it also allows the user to set
-## a random timer in a specified range.[br]
-## By enabling rounding, the random timer can be further controlled on how it
-## should be rounded.[br]
-## Alternatively it also supports weighted randomness if a specific set of times
-## are desired.[br]
-## Additionally a seed can be set to get consistent results with the
-## randomized times.
+## Outside of using it to start a predetermined countdown timer, this node also provides a random timer of equal distribution and weighted distribution.[br]
+## The random times can be further tweaked by applying rounding rules, or forcing a specific seed for reliable timeouts.
 
-## Emitted when the timer starts.[br]
-## [param time] is the time in seconds until [signal Timer.timeout] is emitted.
+## Emitted when the timer is started, with [param time] being time in seconds until [signal Timer.timeout] is emitted.[br]
 signal timer_started(time: float)
 
 enum Rounding {
@@ -44,28 +35,28 @@ const _DEFAULT_WEIGHTED_TIMES: WeightedTimeTable = null
 
 #region Random Timer Variables
 @export_group("Random Timer")
-## The minimum time required for the timer to end, in seconds.
+## The minimum time required for the timer to end, in seconds.[br]
+## [b]Note:[/b] [member min_wait_time] is never greater than [member max_wait_time].
 @export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var min_wait_time: float = _DEFAULT_MIN_WAIT_TIME:
 	set = set_min_wait_time
 
-## The maximum time required for the timer to end, in seconds.
+## The maximum time required for the timer to end, in seconds.[br]
+## [b]Note:[/b] [member max_wait_time] is never less than [member min_wait_time].
 @export_range(0.001, 4096.0, 0.001, "or_greater", "suffix:s", "exp")
 var max_wait_time: float = _DEFAULT_MAX_WAIT_TIME:
 	set = set_max_wait_time
 
 ## If [code]true[/code], the randomized timeouts are rounded to the nearest
 ## [member step_size].
-## [br][br]
-## However when rounding down to [code]0[/code], the value is always
-## clamped to [code]0.001[/code].
 ## [codeblock]
-## # rounded set to false
+## # Examples are truncated
+## rounded = false
 ## start_random(1.0, 2.0) # 1.154
 ## start_random(1.0, 2.0) # 1.676
 ## start_random(1.0, 2.0) # 1.934
 ##
-## # rounded set to true
+## rounded = true
 ## start_random(1.0, 2.0) # Either 1.0 or 2.0
 ## [/codeblock]
 @export
@@ -78,7 +69,7 @@ var rounded: bool = _DEFAULT_ROUNDED:
 ## start_random(1.0, 2.0) # Always 1.0
 ##
 ## rounding_type = Rounding.ROUND
-## start_random(1.0, 2.0) # Either 1.0 or 2.0 depending on which is closer
+## start_random(1.0, 2.0) # Either 1.0 or 2.0
 ##
 ## rounding_type = Rounding.CEIL
 ## start_random(1.0, 2.0) # Always 2.0
@@ -86,13 +77,13 @@ var rounded: bool = _DEFAULT_ROUNDED:
 var rounding_type: Rounding = _DEFAULT_ROUNDING_TYPE:
 	set = set_rounding_type
 
-## If [code]true[/code], clamps the wait time between [member min_wait_time]
-## and [member max_wait_time] and prevents the rounding to go out of bounds.
+## If [code]true[/code], clamps the time between [member min_wait_time]
+## and [member max_wait_time].
 ## [codeblock]
-## # clamped set to false
+## clamped = false
 ## start_random(1.2, 1.8) # Either 1.0 or 2.0
 ##
-## # clamped set to true
+## clamped = true
 ## start_random(1.2, 1.8) # Either 1.2 or 1.8
 ## [/codeblock]
 @export
@@ -101,13 +92,14 @@ var clamped: bool = _DEFAULT_CLAMPED:
 
 ## The step size of which the timer should round to.
 ## [br]
-## Setting [member step_size] to [code]0[/code] is the same as setting
+## Setting [member step_size] to [code]0.0[/code] is the same as setting
 ## [member rounded] to [code]false[/code]
 ## [codeblock]
+## step_size = 1.0
+## start_random(1.0, 2.0) # Either 1.0 or 2.0
+##
 ## step_size = 0.5
-## start_random(1.0, 2.0) # 1.0
-## start_random(1.0, 2.0) # 1.5
-## start_random(1.0, 2.0) # 2.0
+## start_random(1.0, 2.0) # Either 1.0, 1.5 or 2.0
 ## [/codeblock]
 var step_size: float = _DEFAULT_STEP_SIZE:
 	set = set_step_size
@@ -118,7 +110,7 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 ## The [WeightedTimeTable] resource containing the time/weight pairs used by
 ## [method start_weighted].
 ## [codeblock]
-## # To create and add a resource to a node via code you can do this.
+## # Example of creating and adding a resource to a node via code.
 ## var plant_growth = WeightedTimeTable.new()
 ## plant_growth.add_time(40.0, 0.5)
 ## plant_growth.add_time(50.0, 1.0)
@@ -135,12 +127,11 @@ var step_size: float = _DEFAULT_STEP_SIZE:
 @export var weighted_times: WeightedTimeTable = _DEFAULT_WEIGHTED_TIMES:
 	set = set_weighted_times
 
-## Sort all entries in ascending order.[br]
-## Main usage is it being a tool button in the inspector
+## Sort all [member weighted_times] entries in ascending order.
 @export_tool_button("Sort Pairs", "Sort")
 var sort_weighted_times_action := (
 	func() -> void:
-		weighted_times.time_weights.sort()
+		time_weights.sort()
 		notify_property_list_changed()
 )
 
@@ -148,8 +139,10 @@ var sort_weighted_times_action := (
 ## Returns an empty dictionary if [member weighted_times] is [code]null[/code].
 ## [codeblock]
 ## # Similar returns, but one is simpler to access.
-## advanced_timer.weighted_times.time_weights
+## # Good
 ## advanced_timer.time_weights
+## # Bad
+## advanced_timer.weighted_times.time_weights
 ## [/codeblock]
 var time_weights: Dictionary[float, float]:
 	get = get_time_weights
@@ -158,12 +151,13 @@ var time_weights: Dictionary[float, float]:
 #region Timer Modifiers
 @export_group("Timer Modifiers")
 ## If [code]true[/code], a [b]static[/b] [RandomNumberGenerator] is used for
-## randomized times that is shared between all instances of [AdvancedTimer].
+## randomized times that is shared between all instances of [AdvancedTimer].[br]
+## [b]Note:[/b] Setting it also updates [member seed]
 @export var static_randomization: bool = _DEFAULT_STATIC_RANDOMIZATION:
 	set = set_static_randomization
 
 ## The seed that is set for [RandomNumberGenerator] to randomize the timer.[br]
-## If [code]null[/code], disables seeded time generation.
+## If [code]null[/code], disables seeded time generation by randomizing its seed.
 var seed: Variant = _DEFAULT_SEED:
 	set = set_seed
 #endregion Timer Modifiers
@@ -260,18 +254,17 @@ func _property_can_revert(property: StringName) -> bool:
 ## @deprecated: Use [method start_random] instead.
 ## To simulate [method start_random] as a normal timer, set
 ## [member min_wait_time] and [member max_wait_time] to the same value.
-func start(time_sec: float = -1) -> void:
+func start(time_sec: float = -1.0) -> void:
 	start_random(time_sec, time_sec)
 
 
-## [b]Description[/b][br]
 ## Starts the timer between [param min_time] and [param max_time].[br]
 ## If [param min_time] and [param max_time] are omitted, then [member min_wait_time]
 ## and [member max_wait_time] will be used.[br]
 ## If [param max_time] is smaller than [param min_time], its value will be set
 ## to match [param min_time].[br]
 ## [br][b]Signals[/b][br]
-## [signal timer_started] upon function call.[br]
+## Emits [signal timer_started] upon function call.[br]
 ## [br][b]Returns[/b][br]
 ## The duration of the timer, somewhere between [param min_time] and [param max_time].[br]
 func start_random(min_time: float = -1.0, max_time: float = -1.0) -> float:
@@ -307,18 +300,17 @@ func start_random(min_time: float = -1.0, max_time: float = -1.0) -> float:
 	return random_time
 
 
-## [b]Description[/b][br]
 ## Starts the timer using a random weighted duration.[br]
 ## If [param times] and [param weights] are omitted, then [member weighted_times] will be used.[br]
 ## If [param times] and [param weights] differ in size, then the larger will be resized to the
 ## smaller.[br]
 ## [br][b]Signals[/b][br]
-## [signal timer_started] upon function call.[br]
+## Emits [signal timer_started] upon function call.[br]
 ## [br][b]Returns[/b][br]
-## The duration of the timer, chosen from [param times].[br]
-## [br][b]NOTE[/b][br]
+## The duration of the timer, picked from [param times].[br]
+## [br][b]Note[/b][br]
 ## If [member weighted_times] is null or empty and the function gets called without both arguments,
-## a fallback time of [code]1[/code] second gets started.
+## a fallback time of [code]1.0[/code] second gets started.
 func start_weighted(times: PackedFloat32Array = [], weights: PackedFloat32Array = []) -> float:
 	_prev_timer = start_weighted
 
