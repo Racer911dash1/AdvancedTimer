@@ -11,6 +11,7 @@ The following unreleased changes have not yet been submitted to the Godot asset 
 ### Changed
 
 - Renamed `sort_weighted_times` to `sort_weighted_times_action`
+- Documentation, clarifying some parts.
 
 ### Fixed
 
