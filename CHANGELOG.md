@@ -16,7 +16,7 @@ The following unreleased changes have not yet been submitted to the Godot asset 
 ### Fixed
 
 - Setting `seed` to `null` after previously setting a seed did not "disable" the seeded time generation. It now randomizes the seed when set to `null`, effectively disabling it.
-  - Setting `static_randomization` also sets the rng seed.
+  - Setting `static_randomization` updates the rng seed.
 
 ### Other
 

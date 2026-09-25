@@ -1,8 +1,8 @@
-## A Resource pairing timer durations with selection weights, intended to be used with
-## [method AdvancedTimer.start_weighted].[br]
 @tool
 class_name WeightedTimeTable
 extends Resource
+## A Resource pairing timer durations with selection weights, intended to be used with
+## [method AdvancedTimer.start_weighted].[br]
 
 const _MIN_TIME: float = 0.001
 const _MIN_WEIGHT: float = 0.0
@@ -10,15 +10,10 @@ const _MIN_WEIGHT: float = 0.0
 ## The time/weight pairs, where a key is the duration in seconds and the corresponding value
 ## its weight.[br]
 ## Keys are clamped to be at least [code]0.001[/code].[br]
-## Values are clamped to be at least [code]0[/code].
+## Values are clamped to be at least [code]0.0[/code].
 @export var time_weights: Dictionary[float, float]:
-	set(value):
-		var clamped: Dictionary[float, float] = { }
-		for key: float in value:
-			var new_key := maxf(key, _MIN_TIME)
-			var new_value := maxf(value[key], _MIN_WEIGHT)
-			clamped[new_key] = new_value
-		time_weights = clamped
+	set = set_time_weights
+
 
 ## Add an entry to [member time_weights] with limit checking.[br]
 ## If [param time] is a non-positive number, it will be set to [code]0.001[/code] before being added
@@ -36,6 +31,7 @@ func add_time(time: float, weight: float) -> void:
 func remove_time(time: float) -> bool:
 	return time_weights.erase(time)
 
+
 ## Return true if [param time] is found in [member time_weights].
 func has_time(time: float) -> bool:
 	return time_weights.has(time)
@@ -49,3 +45,15 @@ func get_times() -> PackedFloat32Array:
 ## Returns all values of [member time_weights].
 func get_weights() -> PackedFloat32Array:
 	return PackedFloat32Array(time_weights.values())
+
+
+func set_time_weights(new_time_weights: Dictionary[float, float]) -> void:
+	if new_time_weights == time_weights:
+		return
+
+	var clamped: Dictionary[float, float] = {}
+	for key: float in new_time_weights:
+		var new_key := maxf(key, _MIN_TIME)
+		var new_value := maxf(new_time_weights[key], _MIN_WEIGHT)
+		clamped[new_key] = new_value
+	time_weights = clamped
